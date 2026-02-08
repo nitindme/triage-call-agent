@@ -229,13 +229,14 @@ def run_triage_sync():
     # Wait for human approval (short timeout for demo, auto-approve if not responded)
     broadcast_message({
         "type": "waiting_approval",
-        "message": "Waiting for Nitin's approval... (auto-approves in 15s)",
+        "message": "Waiting for Nitin's approval... (auto-approves in 5s)",
         "timestamp": datetime.now().strftime("%H:%M:%S")
     })
     
-    # Short timeout for production demo (15 seconds), auto-approve if no response
+    # Short timeout for production demo (5 seconds), auto-approve if no response
+    # Reduced from 15s to avoid SSE timeout on cloud platforms
     print(f"[TRIAGE] Waiting for approval... approval_granted={approval_granted}")
-    approved = approval_event.wait(timeout=15)
+    approved = approval_event.wait(timeout=5)
     print(f"[TRIAGE] Wait complete. approved={approved}, approval_granted={approval_granted}")
     
     if not approved:

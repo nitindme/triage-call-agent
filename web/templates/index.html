@@ -98,6 +98,99 @@
             background: #3a3d42;
         }
         
+        .btn-approve {
+            background: var(--accent-green);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+        
+        .btn-approve:hover {
+            background: #3cc98b;
+            transform: scale(1.02);
+        }
+        
+        .btn-reject {
+            background: var(--accent-red);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+        
+        .btn-reject:hover {
+            background: #f03e7b;
+        }
+        
+        /* Human participant styling */
+        .human-participant {
+            background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%);
+            border: 1px solid var(--accent-blue);
+            margin-bottom: 12px;
+        }
+        
+        .human-participant .agent-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .human-participant .agent-role {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        .human-badge {
+            background: var(--accent-blue);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+        
+        .agent-avatar.human {
+            background: var(--accent-blue);
+        }
+        
+        /* Approval panel */
+        .approval-panel {
+            background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+            border-top: 1px solid var(--accent-red);
+            padding: 16px;
+            animation: pulse-border 2s infinite;
+        }
+        
+        @keyframes pulse-border {
+            0%, 100% { border-color: var(--accent-red); }
+            50% { border-color: var(--accent-yellow); }
+        }
+        
+        .approval-panel h3 {
+            color: white;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .approval-panel p {
+            color: #fca5a5;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        
+        .approval-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        /* Human message styling */
+        .message.human-message {
+            background: linear-gradient(135deg, #1e3a5f 0%, #1a365d 100%);
+            border-left: 3px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+        
         /* Main layout */
         .main {
             flex: 1;
@@ -467,7 +560,16 @@
             </div>
             
             <div class="agents-list">
-                <h2>Agents</h2>
+                <h2>Participants</h2>
+                <!-- Human participant -->
+                <div class="agent-item human-participant">
+                    <div class="agent-avatar human">👨‍💻</div>
+                    <div class="agent-info">
+                        <span class="agent-name">Nitin</span>
+                        <span class="agent-role">Engineering Lead</span>
+                    </div>
+                    <div class="human-badge">HUMAN</div>
+                </div>
                 <div class="agent-item">
                     <div class="agent-avatar chair">👔</div>
                     <span class="agent-name">ChairAgent</span>
@@ -497,6 +599,16 @@
                     <div class="agent-avatar frontend">🖥️</div>
                     <span class="agent-name">FrontendAgent</span>
                     <div class="agent-status" id="status-frontend"></div>
+                </div>
+            </div>
+            
+            <!-- Approval Panel -->
+            <div class="approval-panel" id="approval-panel" style="display: none;">
+                <h3>⚠️ Approval Required</h3>
+                <p>Review the fix and approve deployment to production.</p>
+                <div class="approval-buttons">
+                    <button class="btn btn-approve" onclick="approveDeployment()">✅ Approve</button>
+                    <button class="btn btn-reject" onclick="rejectDeployment()">❌ Reject</button>
                 </div>
             </div>
         </aside>
@@ -529,6 +641,7 @@
         const startBtn = document.getElementById('start-btn');
         const incidentCard = document.getElementById('incident-card');
         const noIncident = document.getElementById('no-incident');
+        const approvalPanel = document.getElementById('approval-panel');
         
         let eventSource = null;
         
@@ -539,7 +652,8 @@
             'BillingAgent': '#10b981',
             'OrderingAgent': '#ec4899',
             'FrontendAgent': '#6366f1',
-            'System': '#1d9bd1'
+            'System': '#1d9bd1',
+            'Nitin': '#3b82f6'
         };
         
         const agentEmojis = {
@@ -549,8 +663,29 @@
             'BillingAgent': '💳',
             'OrderingAgent': '📦',
             'FrontendAgent': '🖥️',
-            'System': '🤖'
+            'System': '🤖',
+            'Nitin': '👨‍💻'
         };
+        
+        function approveDeployment() {
+            approvalPanel.style.display = 'none';
+            fetch('/approve', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Deployment approved:', data);
+                })
+                .catch(err => console.error('Approval failed:', err));
+        }
+        
+        function rejectDeployment() {
+            approvalPanel.style.display = 'none';
+            fetch('/reject', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Deployment rejected:', data);
+                })
+                .catch(err => console.error('Rejection failed:', err));
+        }
         
         function startTriage() {
             startBtn.disabled = true;
@@ -558,6 +693,7 @@
             emptyStateEl.style.display = 'none';
             liveBadgeEl.style.display = 'inline-block';
             messagesEl.innerHTML = '';
+            approvalPanel.style.display = 'none';
             
             // Reset agent statuses
             document.querySelectorAll('.agent-status').forEach(el => el.classList.remove('active'));
@@ -602,8 +738,28 @@
                 
                 if (data.type === 'ping') return;
                 
+                // Check if waiting for approval - show approval panel
+                if (data.type === 'waiting_approval') {
+                    approvalPanel.style.display = 'block';
+                    addMessage({
+                        agent: 'System',
+                        text: '⏳ ' + data.message,
+                        timestamp: data.timestamp,
+                        message_type: 'system'
+                    });
+                    return;
+                }
+                
+                // Check if this is an approval request message
+                if (data.message_type === 'approval_request') {
+                    approvalPanel.style.display = 'block';
+                    addMessage(data);
+                    return;
+                }
+                
                 // Check if this is RCA (end of triage)
                 if (data.message_type === 'rca') {
+                    approvalPanel.style.display = 'none';
                     addMessage(data);
                     setTimeout(() => {
                         eventSource.close();
@@ -612,6 +768,11 @@
                         startBtn.textContent = '🚨 Start Demo Incident';
                     }, 1000);
                     return;
+                }
+                
+                // Check if this is a human message
+                if (data.message_type === 'human') {
+                    approvalPanel.style.display = 'none';
                 }
                 
                 // Update agent status
@@ -627,6 +788,7 @@
             eventSource.onerror = function() {
                 eventSource.close();
                 liveBadgeEl.style.display = 'none';
+                approvalPanel.style.display = 'none';
                 startBtn.disabled = false;
                 startBtn.textContent = '🚨 Start Demo Incident';
             };
@@ -634,7 +796,9 @@
         
         function addMessage(data) {
             const messageEl = document.createElement('div');
-            messageEl.className = data.message_type === 'rca' ? 'rca-container' : 'message';
+            const isHuman = data.agent === 'Nitin' || data.message_type === 'human';
+            messageEl.className = data.message_type === 'rca' ? 'rca-container' : 
+                                  isHuman ? 'message human-message' : 'message';
             
             if (data.message_type === 'rca') {
                 messageEl.innerHTML = formatMarkdown(data.text);

@@ -1,0 +1,62 @@
+{
+  "agent": "FrontendAgent",
+  "last_updated": "2026-02-08",
+  "description": "Owns frontend application code, API contracts, and Vercel deployments",
+  "objectives": [
+    "Maintain API contract compatibility",
+    "Ensure proper error handling in UI",
+    "Keep frontend deployed and healthy",
+    "Fix client-side bugs rapidly"
+  ],
+  "triage_steps": [
+    "Check recent frontend deployments on Vercel",
+    "Compare frontend API calls against backend contract",
+    "Review browser console errors (if available)",
+    "Validate request payload structure",
+    "Check for missing or malformed fields"
+  ],
+  "common_failures": [
+    {
+      "code": "FE_CONTRACT_MISMATCH",
+      "description": "Frontend sending outdated payload schema",
+      "root_cause": "Backend added required field, frontend not updated",
+      "fix": "Add missing field to request body"
+    },
+    {
+      "code": "FE_UNHANDLED_ERROR",
+      "description": "Frontend not handling API error gracefully",
+      "root_cause": "Missing try/catch or error boundary",
+      "fix": "Add proper error handling"
+    },
+    {
+      "code": "FE_STALE_CACHE",
+      "description": "Serving outdated JavaScript bundle",
+      "root_cause": "CDN cache not invalidated after deploy",
+      "fix": "Force cache invalidation or redeploy"
+    }
+  ],
+  "escalation_rules": [
+    {
+      "condition": "Backend API contract change not communicated",
+      "escalate_to": "OrderingAgent or BillingAgent",
+      "priority": "medium",
+      "action": "Request contract documentation update"
+    },
+    {
+      "condition": "Deployment pipeline broken",
+      "escalate_to": "SREAgent",
+      "priority": "high"
+    }
+  ],
+  "deployment_config": {
+    "platform": "Vercel",
+    "auto_deploy": true,
+    "preview_url_pattern": "https://{{branch}}-demo-frontend.vercel.app",
+    "production_url": "https://demo-frontend.vercel.app"
+  },
+  "files_to_inspect": [
+    "checkout.ts",
+    "api/create-order/route.ts",
+    "api/pay/route.ts"
+  ]
+}

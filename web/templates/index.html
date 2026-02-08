@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Incident Triage Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #1a1d21;
+            --bg-secondary: #222529;
+            --bg-hover: #2c2f33;
+            --text-primary: #d1d2d3;
+            --text-secondary: #ababad;
+            --accent-blue: #1d9bd1;
+            --accent-green: #2eb67d;
+            --accent-red: #e01e5a;
+            --accent-yellow: #ecb22e;
+            --border-color: #393c40;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo svg {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .logo h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent-green);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3cc98b;
+        }
+        
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-secondary:hover {
+            background: #3a3d42;
+        }
+        
+        /* Main layout */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .incident-info {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .incident-info h2 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        
+        .incident-card {
+            background: var(--bg-hover);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .incident-card .ticket-id {
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 4px;
+        }
+        
+        .severity {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .severity.sev-1 { background: var(--accent-red); color: white; }
+        .severity.sev-2 { background: var(--accent-yellow); color: #1a1d21; }
+        .severity.sev-3 { background: var(--accent-blue); color: white; }
+        
+        .incident-summary {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        
+        /* Agents list */
+        .agents-list {
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .agents-list h2 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .agent-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .agent-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+        
+        .agent-avatar.chair { background: #7c3aed; }
+        .agent-avatar.main { background: #0ea5e9; }
+        .agent-avatar.sre { background: #f59e0b; }
+        .agent-avatar.billing { background: #10b981; }
+        .agent-avatar.ordering { background: #ec4899; }
+        .agent-avatar.frontend { background: #6366f1; }
+        
+        .agent-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .agent-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #555;
+            margin-left: auto;
+        }
+        
+        .agent-status.active {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+        
+        /* Chat area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+        
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .chat-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .live-badge {
+            background: var(--accent-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .message-author {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .message-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+        
+        .message-text code {
+            background: var(--bg-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+        }
+        
+        .message-text pre {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .message-text h1, .message-text h2, .message-text h3 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        
+        .message-text ul, .message-text ol {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+        
+        .message-text li {
+            margin-bottom: 4px;
+        }
+        
+        /* RCA styling */
+        .rca-container {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .rca-container h1 {
+            color: var(--accent-blue);
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .rca-container h2 {
+            font-size: 14px;
+            color: var(--accent-yellow);
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 48px;
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+        
+        .empty-state h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        
+        .empty-state p {
+            color: var(--text-secondary);
+            max-width: 400px;
+            margin-bottom: 24px;
+        }
+        
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: fit-content;
+        }
+        
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+        
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="8" fill="#1d9bd1"/>
+                <path d="M16 8L24 12V20L16 24L8 20V12L16 8Z" stroke="white" stroke-width="2" fill="none"/>
+                <circle cx="16" cy="16" r="3" fill="white"/>
+            </svg>
+            <h1>AI Incident Triage Platform</h1>
+        </div>
+        <div class="header-actions">
+            <a href="/runbooks" class="btn btn-secondary">📖 Runbooks</a>
+            <button id="start-btn" class="btn btn-primary" onclick="startTriage()">
+                🚨 Start Demo Incident
+            </button>
+        </div>
+    </header>
+    
+    <main class="main">
+        <aside class="sidebar">
+            <div class="incident-info">
+                <h2>Current Incident</h2>
+                <div class="incident-card" id="incident-card" style="display: none;">
+                    <div class="ticket-id" id="ticket-id">INC-2026-XXX</div>
+                    <span class="severity sev-2" id="severity">SEV-2</span>
+                    <div class="incident-summary" id="summary">Loading...</div>
+                </div>
+                <div id="no-incident" style="color: var(--text-secondary); font-size: 13px;">
+                    No active incident. Click "Start Demo Incident" to begin.
+                </div>
+            </div>
+            
+            <div class="agents-list">
+                <h2>Agents</h2>
+                <div class="agent-item">
+                    <div class="agent-avatar chair">👔</div>
+                    <span class="agent-name">ChairAgent</span>
+                    <div class="agent-status" id="status-chair"></div>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-avatar main">🎯</div>
+                    <span class="agent-name">MainAgent</span>
+                    <div class="agent-status" id="status-main"></div>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-avatar sre">⚙️</div>
+                    <span class="agent-name">SREAgent</span>
+                    <div class="agent-status" id="status-sre"></div>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-avatar billing">💳</div>
+                    <span class="agent-name">BillingAgent</span>
+                    <div class="agent-status" id="status-billing"></div>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-avatar ordering">📦</div>
+                    <span class="agent-name">OrderingAgent</span>
+                    <div class="agent-status" id="status-ordering"></div>
+                </div>
+                <div class="agent-item">
+                    <div class="agent-avatar frontend">🖥️</div>
+                    <span class="agent-name">FrontendAgent</span>
+                    <div class="agent-status" id="status-frontend"></div>
+                </div>
+            </div>
+        </aside>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>🎙️ Live Triage Call</h2>
+                <span class="live-badge" id="live-badge" style="display: none;">LIVE</span>
+            </div>
+            
+            <div class="chat-messages" id="messages">
+                <div class="empty-state" id="empty-state">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    <h2>AI-Driven Incident Triage</h2>
+                    <p>Simulate, detect, diagnose, and resolve production incidents using autonomous AI agents that follow real engineering processes.</p>
+                    <button class="btn btn-primary" onclick="startTriage()">
+                        🚨 Start Demo Incident
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const messagesEl = document.getElementById('messages');
+        const emptyStateEl = document.getElementById('empty-state');
+        const liveBadgeEl = document.getElementById('live-badge');
+        const startBtn = document.getElementById('start-btn');
+        const incidentCard = document.getElementById('incident-card');
+        const noIncident = document.getElementById('no-incident');
+        
+        let eventSource = null;
+        
+        const agentColors = {
+            'ChairAgent': '#7c3aed',
+            'MainAgent': '#0ea5e9',
+            'SREAgent': '#f59e0b',
+            'BillingAgent': '#10b981',
+            'OrderingAgent': '#ec4899',
+            'FrontendAgent': '#6366f1',
+            'System': '#1d9bd1'
+        };
+        
+        const agentEmojis = {
+            'ChairAgent': '👔',
+            'MainAgent': '🎯',
+            'SREAgent': '⚙️',
+            'BillingAgent': '💳',
+            'OrderingAgent': '📦',
+            'FrontendAgent': '🖥️',
+            'System': '🤖'
+        };
+        
+        function startTriage() {
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ Running...';
+            emptyStateEl.style.display = 'none';
+            liveBadgeEl.style.display = 'inline-block';
+            messagesEl.innerHTML = '';
+            
+            // Reset agent statuses
+            document.querySelectorAll('.agent-status').forEach(el => el.classList.remove('active'));
+            
+            // Start SSE stream first
+            startStream();
+            
+            fetch('/start', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'started') {
+                        // Update incident card
+                        incidentCard.style.display = 'block';
+                        noIncident.style.display = 'none';
+                        
+                        // Fetch failure info after a short delay
+                        setTimeout(() => {
+                            fetch('/current-failure')
+                                .then(r => r.json())
+                                .then(failure => {
+                                    if (failure.id) {
+                                        document.getElementById('ticket-id').textContent = 'INC-2026-' + new Date().getHours() + new Date().getMinutes();
+                                        document.getElementById('severity').textContent = 'SEV-2';
+                                        document.getElementById('summary').textContent = failure.message;
+                                    }
+                                });
+                        }, 2000);
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to start triage:', err);
+                    startBtn.disabled = false;
+                    startBtn.textContent = '🚨 Start Demo Incident';
+                });
+        }
+        
+        function startStream() {
+            eventSource = new EventSource('/stream');
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'ping') return;
+                
+                // Check if this is RCA (end of triage)
+                if (data.message_type === 'rca') {
+                    addMessage(data);
+                    setTimeout(() => {
+                        eventSource.close();
+                        liveBadgeEl.style.display = 'none';
+                        startBtn.disabled = false;
+                        startBtn.textContent = '🚨 Start Demo Incident';
+                    }, 1000);
+                    return;
+                }
+                
+                // Update agent status
+                const agentKey = data.agent.toLowerCase().replace('agent', '');
+                document.querySelectorAll('.agent-status').forEach(el => el.classList.remove('active'));
+                const statusEl = document.getElementById(`status-${agentKey}`);
+                if (statusEl) statusEl.classList.add('active');
+                
+                // Add message
+                addMessage(data);
+            };
+            
+            eventSource.onerror = function() {
+                eventSource.close();
+                liveBadgeEl.style.display = 'none';
+                startBtn.disabled = false;
+                startBtn.textContent = '🚨 Start Demo Incident';
+            };
+        }
+        
+        function addMessage(data) {
+            const messageEl = document.createElement('div');
+            messageEl.className = data.message_type === 'rca' ? 'rca-container' : 'message';
+            
+            if (data.message_type === 'rca') {
+                messageEl.innerHTML = formatMarkdown(data.text);
+            } else {
+                const color = agentColors[data.agent] || '#555';
+                const emoji = agentEmojis[data.agent] || '🤖';
+                
+                messageEl.innerHTML = `
+                    <div class="message-avatar" style="background: ${color}">${emoji}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${data.agent}</span>
+                            <span class="message-time">${data.timestamp}</span>
+                        </div>
+                        <div class="message-text">${formatMarkdown(data.text)}</div>
+                    </div>
+                `;
+            }
+            
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        
+        function formatMarkdown(text) {
+            return text
+                // Code blocks
+                .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                // Headers
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                // Bold
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Lists
+                .replace(/^- (.+)$/gm, '<li>$1</li>')
+                // Line breaks
+                .replace(/\n/g, '<br>');
+        }
+    </script>
+</body>
+</html>

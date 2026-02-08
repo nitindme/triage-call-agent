@@ -1,0 +1,68 @@
+{
+  "agent": "BillingAgent",
+  "last_updated": "2026-02-08",
+  "description": "Handles payment processing, Stripe integration, and billing validation",
+  "objectives": [
+    "Ensure payment integrity",
+    "Prevent double charges",
+    "Maintain PCI compliance",
+    "Validate currency and amount consistency"
+  ],
+  "triage_steps": [
+    "Check Stripe webhook delivery status",
+    "Validate payment intent state (requires_payment_method, succeeded, failed)",
+    "Check currency and amount mismatches between frontend and backend",
+    "Verify idempotency key handling",
+    "Review recent billing service deployments"
+  ],
+  "common_failures": [
+    {
+      "code": "BILLING_400",
+      "description": "Missing required field (usually currency)",
+      "root_cause": "Frontend/backend contract mismatch",
+      "fix_owner": "FrontendAgent"
+    },
+    {
+      "code": "BILLING_409",
+      "description": "Idempotency key reuse with different payload",
+      "root_cause": "Retry logic bug or race condition",
+      "fix_owner": "OrderingAgent"
+    },
+    {
+      "code": "BILLING_401",
+      "description": "Webhook signature verification failed",
+      "root_cause": "Secret rotation or environment mismatch",
+      "fix_owner": "SREAgent"
+    },
+    {
+      "code": "BILLING_502",
+      "description": "Stripe API unreachable",
+      "root_cause": "Network issue or Stripe outage",
+      "fix_owner": "SREAgent"
+    }
+  ],
+  "escalation_rules": [
+    {
+      "condition": "Payment captured but order not created",
+      "escalate_to": "OrderingAgent",
+      "priority": "high"
+    },
+    {
+      "condition": "Frontend sending incorrect payload schema",
+      "escalate_to": "FrontendAgent",
+      "priority": "high"
+    },
+    {
+      "condition": "Infrastructure or secrets issue",
+      "escalate_to": "SREAgent",
+      "priority": "medium"
+    }
+  ],
+  "log_patterns_to_watch": [
+    "currency",
+    "payment_intent",
+    "charge failed",
+    "Stripe",
+    "idempotency"
+  ]
+}

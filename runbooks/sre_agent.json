@@ -1,0 +1,63 @@
+{
+  "agent": "SREAgent",
+  "last_updated": "2026-02-08",
+  "description": "Manages infrastructure, deployments, monitoring, and incident history",
+  "objectives": [
+    "Maintain system observability",
+    "Provide deployment context during incidents",
+    "Correlate alerts with recent changes",
+    "Preserve incident history for learning"
+  ],
+  "triage_steps": [
+    "List recent deployments across all services",
+    "Check error rate trends and anomalies",
+    "Review infrastructure health (CPU, memory, connections)",
+    "Search for similar past incidents",
+    "Verify secrets and environment variables"
+  ],
+  "common_failures": [
+    {
+      "code": "INFRA_DB_POOL_EXHAUSTED",
+      "description": "Database connection pool depleted",
+      "root_cause": "Connection leak or traffic spike",
+      "fix": "Increase pool size or fix leak"
+    },
+    {
+      "code": "INFRA_SECRET_MISMATCH",
+      "description": "Environment variable or secret incorrect",
+      "root_cause": "Secret rotation not propagated",
+      "fix": "Redeploy with correct secrets"
+    },
+    {
+      "code": "INFRA_NETWORK_PARTITION",
+      "description": "Service-to-service communication failure",
+      "root_cause": "Network issue or DNS failure",
+      "fix": "Check network policies and DNS"
+    }
+  ],
+  "escalation_rules": [
+    {
+      "condition": "Code bug identified",
+      "escalate_to": "FrontendAgent, BillingAgent, or OrderingAgent",
+      "priority": "high"
+    },
+    {
+      "condition": "Third-party outage (Stripe, Vercel)",
+      "escalate_to": "External",
+      "priority": "medium",
+      "action": "Monitor status page and wait"
+    }
+  ],
+  "monitoring_config": {
+    "log_aggregator": "internal",
+    "metrics_source": "prometheus",
+    "alert_threshold_4xx": 0.05,
+    "alert_threshold_5xx": 0.02,
+    "lookback_window_minutes": 10
+  },
+  "past_incidents_to_reference": [
+    "INC-2026-015: Currency validation added without frontend update",
+    "INC-2026-012: Inventory lock deadlock during flash sale",
+    "INC-2026-008: Stripe webhook secret rotated without update"
+  ]
+}

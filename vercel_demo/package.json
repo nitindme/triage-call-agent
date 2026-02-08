@@ -1,0 +1,15 @@
+{
+  "name": "incident-demo-checkout",
+  "version": "1.0.0",
+  "description": "Demo checkout app for AI Incident Triage Platform",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "14.0.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}

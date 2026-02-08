@@ -1,0 +1,65 @@
+{
+  "enabled": true,
+  "description": "Random failure injection policy - makes each demo unique",
+  "failure_modes": [
+    {
+      "id": "billing_currency_missing",
+      "service": "billing",
+      "type": "schema_mismatch",
+      "error_code": "BILLING_400",
+      "message": "Missing required field: currency",
+      "probability": 0.25,
+      "fix_hint": "Frontend must include 'currency' in payment request"
+    },
+    {
+      "id": "billing_idempotency",
+      "service": "billing",
+      "type": "idempotency_violation",
+      "error_code": "BILLING_409",
+      "message": "Idempotency key reused with different payload",
+      "probability": 0.10,
+      "fix_hint": "Generate unique idempotency key per request"
+    },
+    {
+      "id": "ordering_inventory_lock",
+      "service": "ordering",
+      "type": "inventory_lock_timeout",
+      "error_code": "ORDER_423",
+      "message": "Failed to acquire inventory lock within timeout",
+      "probability": 0.15,
+      "fix_hint": "Increase lock timeout or reduce contention"
+    },
+    {
+      "id": "ordering_validation",
+      "service": "ordering",
+      "type": "validation_failure",
+      "error_code": "ORDER_400",
+      "message": "Order validation failed: missing required field",
+      "probability": 0.20,
+      "fix_hint": "Check API contract for required fields"
+    },
+    {
+      "id": "frontend_stale_contract",
+      "service": "frontend",
+      "type": "stale_api_contract",
+      "error_code": "FE_CONTRACT_MISMATCH",
+      "message": "Frontend API contract out of sync with backend",
+      "probability": 0.25,
+      "fix_hint": "Update frontend to match current API schema"
+    },
+    {
+      "id": "infra_db_timeout",
+      "service": "database",
+      "type": "connection_timeout",
+      "error_code": "INFRA_DB_TIMEOUT",
+      "message": "Database connection timeout after 30s",
+      "probability": 0.05,
+      "fix_hint": "Check database health and connection pool"
+    }
+  ],
+  "global_settings": {
+    "max_simultaneous_failures": 2,
+    "failure_duration_seconds": 300,
+    "auto_recover": false
+  }
+}

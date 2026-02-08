@@ -1,0 +1,70 @@
+{
+  "agent": "OrderingAgent",
+  "last_updated": "2026-02-08",
+  "description": "Handles order creation, inventory management, and order state transitions",
+  "objectives": [
+    "Ensure order atomicity (all-or-nothing)",
+    "Prevent inventory overselling",
+    "Maintain order state consistency",
+    "Handle idempotent order creation"
+  ],
+  "triage_steps": [
+    "Check order creation API response codes",
+    "Validate inventory lock acquisition and release",
+    "Review order state machine transitions",
+    "Check for orphaned orders (payment success, order failed)",
+    "Verify database connection pool health"
+  ],
+  "common_failures": [
+    {
+      "code": "ORDER_400",
+      "description": "Invalid order payload",
+      "root_cause": "Missing required fields or validation failure",
+      "fix_owner": "FrontendAgent"
+    },
+    {
+      "code": "ORDER_409",
+      "description": "Duplicate order attempt",
+      "root_cause": "Idempotency key collision or retry storm",
+      "fix_owner": "OrderingAgent"
+    },
+    {
+      "code": "ORDER_423",
+      "description": "Inventory lock timeout",
+      "root_cause": "High contention or slow database",
+      "fix_owner": "SREAgent"
+    },
+    {
+      "code": "ORDER_500",
+      "description": "Internal order processing error",
+      "root_cause": "Unhandled exception in order pipeline",
+      "fix_owner": "OrderingAgent"
+    }
+  ],
+  "escalation_rules": [
+    {
+      "condition": "Payment captured but order failed",
+      "escalate_to": "BillingAgent",
+      "priority": "critical",
+      "action": "Initiate refund or manual reconciliation"
+    },
+    {
+      "condition": "Frontend sending malformed order data",
+      "escalate_to": "FrontendAgent",
+      "priority": "high"
+    },
+    {
+      "condition": "Database or infrastructure issue",
+      "escalate_to": "SREAgent",
+      "priority": "high"
+    }
+  ],
+  "log_patterns_to_watch": [
+    "create-order",
+    "inventory",
+    "lock",
+    "ORDER_",
+    "sku",
+    "out of stock"
+  ]
+}

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Runbooks | AI Incident Triage</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #1a1d21;
+            --bg-secondary: #222529;
+            --bg-hover: #2c2f33;
+            --text-primary: #d1d2d3;
+            --text-secondary: #ababad;
+            --accent-blue: #1d9bd1;
+            --accent-green: #2eb67d;
+            --border-color: #393c40;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            color: var(--text-primary);
+            background: var(--bg-hover);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn:hover {
+            background: #3a3d42;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        .intro {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .intro h2 {
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+        
+        .intro p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .runbooks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .runbook-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .runbook-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .runbook-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .runbook-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .runbook-avatar.chair { background: #7c3aed; }
+        .runbook-avatar.billing { background: #10b981; }
+        .runbook-avatar.ordering { background: #ec4899; }
+        .runbook-avatar.frontend { background: #6366f1; }
+        .runbook-avatar.sre { background: #f59e0b; }
+        
+        .runbook-title h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+        
+        .runbook-title .updated {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .runbook-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        
+        .runbook-section {
+            margin-bottom: 12px;
+        }
+        
+        .runbook-section h4 {
+            font-size: 12px;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .runbook-section ul {
+            list-style: none;
+            font-size: 13px;
+        }
+        
+        .runbook-section li {
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+        
+        .runbook-section li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>📖 Agent Runbooks</h1>
+        <a href="/" class="btn">← Back to Triage</a>
+    </header>
+    
+    <div class="container">
+        <div class="intro">
+            <h2>Editable Runbooks</h2>
+            <p>Define how each AI agent thinks, investigates, and escalates incidents. These runbooks are loaded at runtime and can be updated without redeploying code. Each agent uses their runbook to guide their analysis and decision-making during incident triage.</p>
+        </div>
+        
+        <div class="runbooks-grid">
+            {% for name, rb in runbooks.items() %}
+            <div class="runbook-card">
+                <div class="runbook-header">
+                    <div class="runbook-avatar {{ name.lower().replace('agent', '') }}">
+                        {% if 'Chair' in name %}👔
+                        {% elif 'Billing' in name %}💳
+                        {% elif 'Ordering' in name %}📦
+                        {% elif 'Frontend' in name %}🖥️
+                        {% elif 'SRE' in name %}⚙️
+                        {% else %}🤖{% endif %}
+                    </div>
+                    <div class="runbook-title">
+                        <h3>{{ name }}</h3>
+                        <span class="updated">Last updated: {{ rb.raw_data.get('last_updated', 'Unknown') }}</span>
+                    </div>
+                </div>
+                
+                <p class="runbook-description">{{ rb.description }}</p>
+                
+                <div class="runbook-section">
+                    <h4>Objectives</h4>
+                    <ul>
+                        {% for obj in rb.objectives[:3] %}
+                        <li>{{ obj }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                <div class="runbook-section">
+                    <h4>Triage Steps</h4>
+                    <ul>
+                        {% for step in rb.triage_steps[:3] %}
+                        <li>{{ step if step is string else step }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

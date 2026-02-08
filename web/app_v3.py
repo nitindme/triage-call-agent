@@ -234,16 +234,20 @@ def run_triage_sync():
     })
     
     # Short timeout for production demo (15 seconds), auto-approve if no response
+    print(f"[TRIAGE] Waiting for approval... approval_granted={approval_granted}")
     approved = approval_event.wait(timeout=15)
+    print(f"[TRIAGE] Wait complete. approved={approved}, approval_granted={approval_granted}")
     
     if not approved:
-        # Auto-approve for demo purposes
+        # Auto-approve for demo purposes (timeout reached)
+        print("[TRIAGE] Timeout - auto-approving")
         approval_granted = True
         broadcast_message(create_message("Nitin",
             "✅ **Auto-approved** - Fix looks good, proceeding with deployment.",
             msg_type="human"
         ))
     elif not approval_granted:
+        print("[TRIAGE] Rejected by user")
         broadcast_message(create_message("ChairAgent",
             "❌ **Deployment rejected by Nitin.**\n"
             "Triage paused. Manual intervention required."
@@ -252,6 +256,7 @@ def run_triage_sync():
         return
     else:
         # Human manually approved
+        print("[TRIAGE] Manually approved by user")
         delay_with_ping(0.5)
         broadcast_message(create_message("Nitin",
             "✅ **Approved!** Looks good, deploy to production.",
@@ -381,16 +386,19 @@ def start_triage():
 @app.route("/approve", methods=["POST"])
 def approve_deployment():
     """Human approves the deployment."""
-    global approval_granted
+    global approval_granted, approval_pending
+    print(f"[APPROVE] Received approval request. Pending: {approval_pending}")
     approval_granted = True
     approval_event.set()
+    print(f"[APPROVE] Event set. Granted: {approval_granted}")
     return jsonify({"status": "approved", "by": "Nitin"})
 
 
 @app.route("/reject", methods=["POST"])
 def reject_deployment():
     """Human rejects the deployment."""
-    global approval_granted
+    global approval_granted, approval_pending
+    print(f"[REJECT] Received rejection request. Pending: {approval_pending}")
     approval_granted = False
     approval_event.set()
     return jsonify({"status": "rejected", "by": "Nitin"})
